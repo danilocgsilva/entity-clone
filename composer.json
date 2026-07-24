@@ -1,0 +1,21 @@
+{
+    "name": "danilocgsilva/entity-clone",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Danilocgsilva\\EntityClone\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Danilo Silva",
+            "email": "contact@danilocgsilva.me"
+        }
+    ],
+    "require": {
+        "doctrine/orm": "^3.6",
+        "doctrine/dbal": "^4.4",
+        "doctrine/migrations": "^3.9",
+        "symfony/cache": "^8.1"
+    }
+}
