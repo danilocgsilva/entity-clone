@@ -1,8 +1,12 @@
 <?php
 
-require_once __DIR__ . '/bootstrap.php';
+declare(strict_types=1);
 
-use Doctrine\ORM\Tools\Console\ConsoleRunner;
-use Doctrine\ORM\Tools\EntityManagerProvider\SingleManagerProvider;
+require_once __DIR__ . '/vendor/autoload.php';
 
-$entityManager = require __DIR__ . '/bootstrap.php';
+use Danilocgsilva\EntityClone\EntityManagerFactory;
+
+return EntityManagerFactory::create(
+    projectRoot: __DIR__,
+    entityPaths: [__DIR__ . '/src/Entity'],
+);
