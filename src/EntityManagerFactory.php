@@ -22,6 +22,7 @@ final class EntityManagerFactory
         $isDevMode = $env !== 'prod';
 
         $config = ORMSetup::createAttributeMetadataConfiguration($entityPaths, $isDevMode);
+        $config->enableNativeLazyObjects(true);
 
         $dbNameKey = $env === 'test' ? 'DB_NAME_TEST' : 'DB_NAME';
 
