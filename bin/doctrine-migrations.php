@@ -9,19 +9,19 @@ use Doctrine\Migrations\Tools\Console\Command\MigrateCommand;
 use Doctrine\Migrations\Tools\Console\Command\StatusCommand;
 use Doctrine\Migrations\DependencyFactory;
 use Doctrine\Migrations\Configuration\Migration\PhpFile;
-use Doctrine\Migrations\Configuration\Connection\ExistingConnection;
-use MyVendor\DoctrineDbToolkit\EntityManagerFactory;
+use Doctrine\Migrations\Configuration\EntityManager\ExistingEntityManager;
+use Danilocgsilva\EntityClone\EntityManagerFactory;
 use Symfony\Component\Console\Application;
 
 $entityManager = EntityManagerFactory::create(
     projectRoot: __DIR__ . '/..',
-    entityPaths: [__DIR__ . '/../src/Entity'],
+    entityPaths: [__DIR__ . '/../src/Entities'],
 );
 
 $config = new PhpFile(__DIR__ . '/../config/migrations.php');
 $dependencyFactory = DependencyFactory::fromEntityManager(
     $config,
-    new ExistingConnection($entityManager->getConnection()),
+    new ExistingEntityManager($entityManager),
 );
 
 $app = new Application('Doctrine Migrations');
