@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Danilocgsilva\EntityClone\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
+use Danilocgsilva\EntityClone\Types\EncryptedStringType;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'database_credentials')]
@@ -21,7 +22,7 @@ class DatabaseAccess
     #[ORM\Column(name: 'user', type: 'string', length: 255)]
     private string $user;
 
-    #[ORM\Column(name: 'password', type: 'text')]
+    #[ORM\Column(name: 'password', type: EncryptedStringType::NAME)]
     private string $password;
 
     #[ORM\Column(name: 'database_name', type: 'string', length: 255, nullable: true)]

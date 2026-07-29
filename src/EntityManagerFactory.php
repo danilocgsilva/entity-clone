@@ -9,6 +9,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\DBAL\DriverManager;
 use Dotenv\Dotenv;
 use RuntimeException;
+use Danilocgsilva\EntityClone\Types\EncryptedStringType;
+use Doctrine\DBAL\Types\Type;
 
 final class EntityManagerFactory
 {
@@ -16,6 +18,10 @@ final class EntityManagerFactory
     {
         if (file_exists($projectRoot . '/.env')) {
             Dotenv::createImmutable($projectRoot)->load();
+        }
+
+        if (!Type::hasType(EncryptedStringType::NAME)) {
+            Type::addType(EncryptedStringType::NAME, EncryptedStringType::class);
         }
 
         $env = getenv('APP_ENV') ?: 'dev';
