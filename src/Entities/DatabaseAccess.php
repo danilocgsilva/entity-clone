@@ -16,6 +16,9 @@ class DatabaseAccess
     #[ORM\Column(type: 'integer')]
     private int $id;
 
+    #[ORM\Column(name: 'name', type: 'string', length: 255)]
+    private string $name;
+
     #[ORM\Column(name: 'host', type: 'string', length: 255)]
     private string $host;
 
@@ -34,6 +37,11 @@ class DatabaseAccess
     public function getId(): int
     {
         return $this->id;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
     }
 
     public function getHost(): string
@@ -59,6 +67,12 @@ class DatabaseAccess
     public function getPort(): int
     {
         return $this->port;
+    }
+
+    public function setName(string $name): self
+    {
+        $this->name = $name;
+        return $this;
     }
 
     public function setHost(string $host): self
