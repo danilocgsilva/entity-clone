@@ -107,4 +107,49 @@ class Domain
             throw new Exception("Error cloning record: " . $e->getMessage());
         }
     }
+
+    /**
+     * @return string[]
+     */
+    public static function listTables(PDO $pdo): array
+    {
+        try {
+            $sql = "SHOW TABLES";
+            $stmt = $pdo->query($sql);
+            $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            // Convert to string array
+            return array_map('strval', $tables);
+        } catch (PDOException $e) {
+            throw new Exception("Failed to list tables: " . $e->getMessage());
+        } catch (Exception $e) {
+            throw new Exception("Error listing tables: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Prints the SHOW CREATE TABLE statement for a given table
+     *
+     * @param PDO $pdo
+     * @param string $tableName
+     * @return string
+     */
+    public static function printCreateTable(PDO $pdo, string $tableName): string
+    {
+        try {
+            $sql = "SHOW CREATE TABLE `$tableName`";
+            $stmt = $pdo->query($sql);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result && isset($result['Create Table'])) {
+                return $result['Create Table'] . ";\n";
+            } else {
+                throw new Exception("Could not retrieve CREATE TABLE statement for table {$tableName}");
+            }
+        } catch (PDOException $e) {
+            throw new Exception("Database error while retrieving CREATE TABLE statement: " . $e->getMessage());
+        } catch (Exception $e) {
+            throw new Exception("Error retrieving CREATE TABLE statement: " . $e->getMessage());
+        }
+    }
 }
