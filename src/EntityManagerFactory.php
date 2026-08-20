@@ -15,35 +15,52 @@ use Doctrine\DBAL\Types\Type;
 
 final class EntityManagerFactory
 {
-    public static function create(string $projectRoot, array $entityPaths): EntityManagerInterface
+    public static function create(
+        string $projectRoot, 
+        array $entityPaths,
+        ?EntityManagerConfigInterface $config = null
+    ): EntityManagerInterface
     {
-        if (file_exists($projectRoot . '/.env')) {
-            Dotenv::createImmutable($projectRoot)->load();
+        // If no config provided, try to load from environment
+        if ($config === null) {
+            if (file_exists($projectRoot . '/.env')) {
+                Dotenv::createImmutable($projectRoot)->load();
+            }
+            
+            $config = new DefaultEntityManagerConfig(
+                host: getenv('DB_HOST') ?: '127.0.0.1',
+                port: (int) (getenv('DB_PORT') ?: 3306),
+                databaseName: self::getDatabaseNameFromEnv(),
+                username: getenv('DB_USER') ?: '',
+                password: getenv('DB_PASSWORD') ?: '',
+                environment: getenv('APP_ENV') ?: 'dev'
+            );
         }
 
-        if (!Type::hasType(EncryptedStringType::NAME)) {
-            Type::addType(EncryptedStringType::NAME, EncryptedStringType::class);
-        }
-
-        $env = getenv('APP_ENV') ?: 'dev';
+        $env = $config->getEnvironment();
         $isDevMode = $env !== 'prod';
 
         $config = ORMSetup::createAttributeMetadataConfiguration($entityPaths, $isDevMode);
         $config->enableNativeLazyObjects(true);
 
-        $dbNameKey = $env === 'test' ? 'DB_NAME_TEST' : 'DB_NAME';
-
         $connectionParams = [
-            'host'     => getenv('DB_HOST') ?: '127.0.0.1',
-            'port'     => (int) (getenv('DB_PORT') ?: 3306),
-            'dbname'   => getenv($dbNameKey) ?: throw new RuntimeException("$dbNameKey is not set"),
-            'user'     => getenv('DB_USER') ?: throw new RuntimeException('DB_USER is not set'),
-            'password' => getenv('DB_PASSWORD') ?: throw new RuntimeException('DB_PASSWORD is not set'),
+            'host'     => $config->getHost(),
+            'port'     => $config->getPort(),
+            'dbname'   => $config->getDatabaseName() ?: throw new RuntimeException("Database name is not set"),
+            'user'     => $config->getUsername() ?: throw new RuntimeException('Database username is not set'),
+            'password' => $config->getPassword() ?: throw new RuntimeException('Database password is not set'),
             'driver'   => 'pdo_mysql',
         ];
 
         $connection = DriverManager::getConnection($connectionParams, $config);
 
         return new EntityManager($connection, $config);
+    }
+
+    private static function getDatabaseNameFromEnv(): string
+    {
+        $env = getenv('APP_ENV') ?: 'dev';
+        $dbNameKey = $env === 'test' ? 'DB_NAME_TEST' : 'DB_NAME';
+        return getenv($dbNameKey) ?: '';
     }
 }
