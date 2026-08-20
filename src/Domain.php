@@ -111,9 +111,12 @@ class Domain
     /**
      * @return string[]
      */
-    public static function listTables(PDO $pdo): array
+    public static function listTables(PDO $pdo, string $databaseName): array
     {
         try {
+            // Switch to the specified database
+            $pdo->exec("USE `$databaseName`");
+            
             $sql = "SHOW TABLES";
             $stmt = $pdo->query($sql);
             $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
