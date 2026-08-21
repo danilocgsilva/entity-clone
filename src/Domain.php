@@ -155,4 +155,23 @@ class Domain
             throw new Exception("Error retrieving CREATE TABLE statement: " . $e->getMessage());
         }
     }
+
+    /**
+     * Tests if the PDO connection is working properly
+     *
+     * @param PDO $pdo
+     * @return bool
+     * @throws Exception
+     */
+    public static function testPdoConnection(PDO $pdo): bool
+    {
+        try {
+            $pdo->query('SELECT 1');
+            return true;
+        } catch (PDOException $e) {
+            throw new Exception("PDO connection test failed: " . $e->getMessage());
+        } catch (Exception $e) {
+            throw new Exception("Error testing PDO connection: " . $e->getMessage());
+        }
+    }
 }
