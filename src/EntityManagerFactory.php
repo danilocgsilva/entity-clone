@@ -21,6 +21,10 @@ final class EntityManagerFactory
         ?EntityManagerConfigInterface $emConfig = null
     ): EntityManagerInterface
     {
+        if (!Type::hasType(EncryptedStringType::NAME)) {
+            Type::addType(EncryptedStringType::NAME, EncryptedStringType::class);
+        }
+        
         // If no config provided, try to load from environment
         if ($emConfig === null) {
             if (file_exists($projectRoot . '/.env')) {
