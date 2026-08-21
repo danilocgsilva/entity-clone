@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Danilocgsilva\GroceriesMemory;
+namespace Danilocgsilva\EntityClone;
 
 
 class DefaultEntityManagerConfig implements EntityManagerConfigInterface

@@ -36,8 +36,8 @@ Set the following environment variables in your project:
 In your application that requires this package, you can pass a custom configuration:
 
 ```php
-use Danilocgsilva\GroceriesMemory\EntityManagerFactory;
-use Danilocgsilva\GroceriesMemory\DefaultEntityManagerConfig;
+use Danilocgsilva\EntityClone\EntityManagerFactory;
+use Danilocgsilva\EntityClone\DefaultEntityManagerConfig;
 
 $config = new DefaultEntityManagerConfig(
     host: 'your-db-host',

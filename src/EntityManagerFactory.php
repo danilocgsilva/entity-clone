@@ -18,16 +18,16 @@ final class EntityManagerFactory
     public static function create(
         string $projectRoot, 
         array $entityPaths,
-        ?EntityManagerConfigInterface $config = null
+        ?EntityManagerConfigInterface $emConfig = null
     ): EntityManagerInterface
     {
         // If no config provided, try to load from environment
-        if ($config === null) {
+        if ($emConfig === null) {
             if (file_exists($projectRoot . '/.env')) {
                 Dotenv::createImmutable($projectRoot)->load();
             }
             
-            $config = new DefaultEntityManagerConfig(
+            $emConfig = new DefaultEntityManagerConfig(
                 host: getenv('DB_HOST') ?: '127.0.0.1',
                 port: (int) (getenv('DB_PORT') ?: 3306),
                 databaseName: self::getDatabaseNameFromEnv(),
@@ -37,24 +37,24 @@ final class EntityManagerFactory
             );
         }
 
-        $env = $config->getEnvironment();
+        $env = $emConfig->getEnvironment();
         $isDevMode = $env !== 'prod';
 
-        $config = ORMSetup::createAttributeMetadataConfiguration($entityPaths, $isDevMode);
-        $config->enableNativeLazyObjects(true);
+        $ormConfig = ORMSetup::createAttributeMetadataConfiguration($entityPaths, $isDevMode);
+        $ormConfig->enableNativeLazyObjects(true);
 
         $connectionParams = [
-            'host'     => $config->getHost(),
-            'port'     => $config->getPort(),
-            'dbname'   => $config->getDatabaseName() ?: throw new RuntimeException("Database name is not set"),
-            'user'     => $config->getUsername() ?: throw new RuntimeException('Database username is not set'),
-            'password' => $config->getPassword() ?: throw new RuntimeException('Database password is not set'),
+            'host'     => $emConfig->getHost(),
+            'port'     => $emConfig->getPort(),
+            'dbname'   => $emConfig->getDatabaseName() ?: throw new RuntimeException("Database name is not set"),
+            'user'     => $emConfig->getUsername() ?: throw new RuntimeException('Database username is not set'),
+            'password' => $emConfig->getPassword() ?: throw new RuntimeException('Database password is not set'),
             'driver'   => 'pdo_mysql',
         ];
 
-        $connection = DriverManager::getConnection($connectionParams, $config);
+        $connection = DriverManager::getConnection($connectionParams, $ormConfig);
 
-        return new EntityManager($connection, $config);
+        return new EntityManager($connection, $ormConfig);
     }
 
     private static function getDatabaseNameFromEnv(): string
