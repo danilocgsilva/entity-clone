@@ -174,4 +174,26 @@ class Domain
             throw new Exception("Error testing PDO connection: " . $e->getMessage());
         }
     }
+
+    public static function getTableForeignKeys(PDO $pdo, string $databaseName, string $tableName): array
+    {
+        $sql = "
+            SELECT 
+                k.COLUMN_NAME as column_name,
+                k.REFERENCED_TABLE_NAME as referenced_table_name,
+                k.REFERENCED_COLUMN_NAME as referenced_column_name
+            FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+            WHERE k.TABLE_SCHEMA = :database_name 
+            AND k.TABLE_NAME = :table_name
+            AND k.REFERENCED_TABLE_NAME IS NOT NULL
+            ORDER BY k.ORDINAL_POSITION";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            ':database_name' => $databaseName,
+            ':table_name' => $tableName
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
