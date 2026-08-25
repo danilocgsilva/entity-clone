@@ -11,6 +11,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
 use Exception;
 use PDOException;
+use Danilocgsilva\EntityClone\Helpers;
 
 class Domain
 {
@@ -137,7 +138,7 @@ class Domain
      * @param string $tableName
      * @return string
      */
-    public static function printCreateTable(PDO $pdo, string $tableName): string
+    public static function getCreateTableStatement(PDO $pdo, string $tableName): string
     {
         try {
             $sql = "SHOW CREATE TABLE `$tableName`";
@@ -195,5 +196,49 @@ class Domain
         ]);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Creates a table in the target database with the same structure as the source table
+     *
+     * @param int $sourceConnectionId
+     * @param int $targetConnectionId
+     * @param string $databaseName
+     * @param string $tableName
+     * @param EntityManagerInterface $entityManager
+     * @return void
+     * @throws Exception
+     */
+    public static function createTableFromSource(
+        int $sourceConnectionId,
+        int $targetConnectionId,
+        string $databaseName,
+        string $tableName,
+        EntityManagerInterface $entityManager
+    ): void {
+        try {
+            // Get source and target PDO connections
+            $sourcePdo = self::getPdoFromDatabaseAccessId($sourceConnectionId, $entityManager);
+            $targetPdo = self::getPdoFromDatabaseAccessId($targetConnectionId, $entityManager);
+            
+            // Verify that target database exists
+            $targetDatabaseExists = Helpers::databaseExists($targetPdo, $databaseName);
+            if (!$targetDatabaseExists) {
+                throw new Exception("Target database '{$databaseName}' does not exist in target connection");
+            }
+            
+            // Get the CREATE TABLE statement from source
+            $createTableStatement = self::getCreateTableStatement($sourcePdo, $tableName);
+            
+            // Remove the table name from the CREATE TABLE statement to avoid conflicts
+            // The statement will be like: "CREATE TABLE `table_name` (...) ENGINE=..."
+            // We want to remove the table name part and just keep the structure
+            $createTableStatement = Helpers::cleanCreateTableStatement($createTableStatement, $tableName);
+            
+            // Create the table in target database
+            $targetPdo->exec($createTableStatement);
+        } catch (Exception $e) {
+            throw new Exception("Error creating table from source: " . $e->getMessage());
+        }
     }
 }
