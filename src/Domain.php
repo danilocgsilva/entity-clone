@@ -29,17 +29,10 @@ class Domain
     /**
      * @return PDO
      */
-    public static function getPdoFromDatabaseAccessId(int $id, EntityManagerInterface $entityManager): PDO
+    public static function createPdoFromDatabaseConnectionEntity(DatabaseAccess $databaseAccess): PDO
     {
-        $repository = $entityManager->getRepository(DatabaseAccess::class);
-        $databaseAccess = $repository->find($id);
-        
-        if (!$databaseAccess) {
-            throw new RuntimeException("DatabaseAccess with id {$id} not found");
-        }
-        
         $dsn = "mysql:host={$databaseAccess->getHost()};port={$databaseAccess->getPort()};dbname={$databaseAccess->getDatabaseName()}";
-        
+
         return new PDO(
             $dsn,
             $databaseAccess->getUser(),
@@ -49,6 +42,21 @@ class Domain
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]
         );
+    }
+
+    /**
+     * @return PDO
+     */
+    public static function getPdoFromDatabaseAccessId(int $id, EntityManagerInterface $entityManager): PDO
+    {
+        $repository = $entityManager->getRepository(DatabaseAccess::class);
+        $databaseAccess = $repository->find($id);
+        
+        if (!$databaseAccess) {
+            throw new RuntimeException("DatabaseAccess with id {$id} not found");
+        }
+        
+        return self::createPdoFromDatabaseConnectionEntity($databaseAccess);
     }
 
     public static function cloneRecordSecure(PDO $sourcePdo, PDO $targetPdo, string $tableName, int $id): bool
