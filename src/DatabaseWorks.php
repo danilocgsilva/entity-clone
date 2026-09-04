@@ -29,4 +29,9 @@ class DatabaseWorks
     {
         return $this->pdo->query("SHOW DATABASES")->fetchAll(PDO::FETCH_COLUMN);
     }
+
+    public function createDatabase(string $databaseName): void
+    {
+        $this->pdo->exec("CREATE DATABASE `$databaseName`");
+    }
 }
