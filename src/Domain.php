@@ -63,17 +63,28 @@ class Domain
      * Lists all databases available in the MySQL server connection
      *
      * @param PDO $pdo
+     * @param bool $ignoreSystemDatabases
      * @return string[]
      * @throws Exception
      */
-    public static function listDatabases(PDO $pdo): array
+    public static function listDatabases(PDO $pdo, bool $ignoreSystemDatabases = false): array
     {
         try {
             $sql = "SHOW DATABASES";
             $stmt = $pdo->query($sql);
             $databases = $stmt->fetchAll(PDO::FETCH_COLUMN);
             
-            return array_map('strval', $databases);
+            if ($ignoreSystemDatabases) {
+                $ignoreDatabases = ['information_schema', 'mysql', 'performance_schema', 'sys'];
+                
+                $filteredDatabases = array_filter($databases, function($database) use ($ignoreDatabases) {
+                    return !in_array(strtolower($database), array_map('strtolower', $ignoreDatabases));
+                });
+
+                $databases = $filteredDatabases;
+            }
+            
+            return array_values(array_map('strval', $databases));
         } catch (PDOException $e) {
             throw new Exception("Failed to list databases: " . $e->getMessage());
         } catch (Exception $e) {
@@ -96,7 +107,6 @@ class Domain
                 throw new Exception("No columns found in table {$tableName}");
             }
             
-            // Get the record
             $selectSql = "SELECT * FROM `$tableName` WHERE id = :id LIMIT 1";
             $selectStmt = $sourcePdo->prepare($selectSql);
             $selectStmt->bindParam(':id', $id, PDO::PARAM_INT);
@@ -108,20 +118,17 @@ class Domain
                 throw new Exception("Record with ID {$id} not found in table {$tableName}");
             }
             
-            // Prepare insert query
             $columnNames = array_diff($columns, ['id']); // Remove 'id' to let auto-increment work
             $placeholders = implode(', ', array_fill(0, count($columnNames), '?'));
             
             $insertSql = "INSERT INTO `$tableName` (" . implode(', ', $columnNames) . ") VALUES ($placeholders)";
             $insertStmt = $targetPdo->prepare($insertSql);
             
-            // Get values for insertion
             $insertValues = [];
             foreach ($columnNames as $columnName) {
                 $insertValues[] = $record[$columnName];
             }
             
-            // Execute the insert
             $result = $insertStmt->execute($insertValues);
             
             if ($result) {
@@ -143,7 +150,6 @@ class Domain
     public static function listTables(PDO $pdo, string $databaseName): array
     {
         try {
-            // Switch to the specified database
             $pdo->exec("USE `$databaseName`");
             
             $sql = "SHOW TABLES";
