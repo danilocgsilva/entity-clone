@@ -59,15 +59,35 @@ class Domain
         return self::createPdoFromDatabaseConnectionEntity($databaseAccess);
     }
 
+    /**
+     * Lists all databases available in the MySQL server connection
+     *
+     * @param PDO $pdo
+     * @return string[]
+     * @throws Exception
+     */
+    public static function listDatabases(PDO $pdo): array
+    {
+        try {
+            $sql = "SHOW DATABASES";
+            $stmt = $pdo->query($sql);
+            $databases = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            return array_map('strval', $databases);
+        } catch (PDOException $e) {
+            throw new Exception("Failed to list databases: " . $e->getMessage());
+        } catch (Exception $e) {
+            throw new Exception("Error listing databases: " . $e->getMessage());
+        }
+    }
+
     public static function cloneRecordSecure(PDO $sourcePdo, PDO $targetPdo, string $tableName, int $id): bool
     {
         try {
-            // Validate inputs
             if (empty($tableName)) {
                 throw new Exception("Table name cannot be empty");
             }
             
-            // Get column information from source table
             $columnsSql = "SHOW COLUMNS FROM `$tableName`";
             $columnsStmt = $sourcePdo->query($columnsSql);
             $columns = $columnsStmt->fetchAll(PDO::FETCH_COLUMN);
@@ -130,7 +150,6 @@ class Domain
             $stmt = $pdo->query($sql);
             $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
             
-            // Convert to string array
             return array_map('strval', $tables);
         } catch (PDOException $e) {
             throw new Exception("Failed to list tables: " . $e->getMessage());
@@ -225,25 +244,18 @@ class Domain
         EntityManagerInterface $entityManager
     ): void {
         try {
-            // Get source and target PDO connections
             $sourcePdo = self::getPdoFromDatabaseAccessId($sourceConnectionId, $entityManager);
             $targetPdo = self::getPdoFromDatabaseAccessId($targetConnectionId, $entityManager);
             
-            // Verify that target database exists
             $targetDatabaseExists = Helpers::databaseExists($targetPdo, $databaseName);
             if (!$targetDatabaseExists) {
                 throw new Exception("Target database '{$databaseName}' does not exist in target connection");
             }
             
-            // Get the CREATE TABLE statement from source
             $createTableStatement = self::getCreateTableStatement($sourcePdo, $tableName);
             
-            // Remove the table name from the CREATE TABLE statement to avoid conflicts
-            // The statement will be like: "CREATE TABLE `table_name` (...) ENGINE=..."
-            // We want to remove the table name part and just keep the structure
             $createTableStatement = Helpers::cleanCreateTableStatement($createTableStatement, $tableName);
             
-            // Create the table in target database
             $targetPdo->exec($createTableStatement);
         } catch (Exception $e) {
             throw new Exception("Error creating table from source: " . $e->getMessage());
