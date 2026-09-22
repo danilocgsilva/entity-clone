@@ -12,6 +12,7 @@ use RuntimeException;
 use Exception;
 use PDOException;
 use Danilocgsilva\EntityClone\Helpers;
+use Generator;
 
 class Domain
 {
@@ -42,6 +43,54 @@ class Domain
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]
         );
+    }
+
+    /**
+     * Compares databases between two DatabaseAccess entities and creates 
+     * missing databases from the first entity in the second entity
+     *
+     * @param int $sourceConnectionId
+     * @param int $targetConnectionId
+     * @param EntityManagerInterface $entityManager
+     * @return Generator<array{success: bool, database: string, message: string}>
+     * @throws Exception
+     */
+    public static function syncDatabasesBetweenConnections(
+        int $sourceConnectionId,
+        int $targetConnectionId,
+        EntityManagerInterface $entityManager
+    ): Generator {
+        try {
+            $sourcePdo = self::getPdoFromDatabaseAccessId($sourceConnectionId, $entityManager);
+            $targetPdo = self::getPdoFromDatabaseAccessId($targetConnectionId, $entityManager);
+            
+            $sourceDatabases = self::listDatabases($sourcePdo, true);
+            
+            $targetDatabases = self::listDatabases($targetPdo, true);
+            
+            $missingDatabases = array_diff($sourceDatabases, $targetDatabases);
+            
+            foreach ($missingDatabases as $databaseName) {
+                $result = [
+                    'success' => false,
+                    'database' => $databaseName,
+                    'message' => ''
+                ];
+                
+                try {
+                    $createSql = "CREATE DATABASE IF NOT EXISTS `$databaseName`";
+                    $targetPdo->exec($createSql);
+                    $result['success'] = true;
+                    $result['message'] = '';
+                } catch (Exception $e) {
+                    $result['message'] = $e->getMessage();
+                }
+                
+                yield $result;
+            }
+        } catch (Exception $e) {
+            throw new Exception("Error synchronizing databases between connections: " . $e->getMessage());
+        }
     }
 
     /**
