@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Danilocgsilva\EntityClone;
 
+use PDO;
+
 class Helpers
 {
     /**
@@ -13,7 +15,7 @@ class Helpers
      * @param string $databaseName
      * @return bool
      */
-    private static function databaseExists(PDO $pdo, string $databaseName): bool
+    public static function databaseExists(PDO $pdo, string $databaseName): bool
     {
         try {
             $sql = "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = :database_name";
@@ -32,14 +34,11 @@ class Helpers
      * @param string $tableName
      * @return string
      */
-    private static function cleanCreateTableStatement(string $createTableStatement, string $tableName): string
+    public static function cleanCreateTableStatement(string $createTableStatement, string $tableName): string
     {
-        // Remove the "CREATE TABLE `table_name`" part from the statement
-        // This assumes the statement starts with "CREATE TABLE `tableName`"
         $pattern = "/^CREATE TABLE `{$tableName}` /i";
         $cleanedStatement = preg_replace($pattern, 'CREATE TABLE ', $createTableStatement);
         
-        // Also remove any trailing semicolon that might be left
         $cleanedStatement = rtrim(trim($cleanedStatement), ';');
         
         return $cleanedStatement;
