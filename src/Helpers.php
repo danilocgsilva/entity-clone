@@ -27,4 +27,29 @@ class Helpers
             return false;
         }
     }
+
+    /**
+     * Checks if a table exists in the given database and PDO connection
+     *
+     * @param PDO $pdo
+     * @param string $databaseName
+     * @param string $tableName
+     * @return bool
+     */
+    public static function tableExists(PDO $pdo, string $databaseName, string $tableName): bool
+    {
+        try {
+            $sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES 
+                    WHERE TABLE_SCHEMA = :database_name 
+                    AND TABLE_NAME = :table_name";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':database_name' => $databaseName,
+                ':table_name' => $tableName
+            ]);
+            return $stmt->fetch() !== false;
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
 }

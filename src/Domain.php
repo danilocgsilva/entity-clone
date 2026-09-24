@@ -13,6 +13,10 @@ use Exception;
 use PDOException;
 use Danilocgsilva\EntityClone\Helpers;
 use Generator;
+use Danilocgsilva\EntityClone\Exceptions\{
+    MissingTargetDatabase, 
+    TargetTableAlreadyExists
+};
 
 class Domain
 {
@@ -304,7 +308,12 @@ class Domain
             
             $targetDatabaseExists = Helpers::databaseExists($targetPdo, $databaseName);
             if (!$targetDatabaseExists) {
-                throw new Exception("Target database '{$databaseName}' does not exist in target connection");
+                throw new MissingTargetDatabase($databaseName);
+            }
+
+            $targetTableExists = Helpers::tableExists($targetPdo, $databaseName, $tableName);
+            if ($targetTableExists) {
+                throw new TargetTableAlreadyExists($tableName);
             }
             
             $createTableStatement = self::getCreateTableStatement($sourcePdo, $tableName);
