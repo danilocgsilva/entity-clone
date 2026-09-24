@@ -14,7 +14,7 @@ use PDOException;
 use Danilocgsilva\EntityClone\Helpers;
 use Generator;
 use Danilocgsilva\EntityClone\Exceptions\{
-    MissingTargetDatabase, 
+    MissingTargetDatabase,
     TargetTableAlreadyExists
 };
 
@@ -67,20 +67,20 @@ class Domain
         try {
             $sourcePdo = self::getPdoFromDatabaseAccessId($sourceConnectionId, $entityManager);
             $targetPdo = self::getPdoFromDatabaseAccessId($targetConnectionId, $entityManager);
-            
+
             $sourceDatabases = self::listDatabases($sourcePdo, true);
-            
+
             $targetDatabases = self::listDatabases($targetPdo, true);
-            
+
             $missingDatabases = array_diff($sourceDatabases, $targetDatabases);
-            
+
             foreach ($missingDatabases as $databaseName) {
                 $result = [
                     'success' => false,
                     'database' => $databaseName,
                     'message' => ''
                 ];
-                
+
                 try {
                     $createSql = "CREATE DATABASE IF NOT EXISTS `$databaseName`";
                     $targetPdo->exec($createSql);
@@ -89,7 +89,7 @@ class Domain
                 } catch (Exception $e) {
                     $result['message'] = $e->getMessage();
                 }
-                
+
                 yield $result;
             }
         } catch (Exception $e) {
@@ -104,11 +104,11 @@ class Domain
     {
         $repository = $entityManager->getRepository(DatabaseAccess::class);
         $databaseAccess = $repository->find($id);
-        
+
         if (!$databaseAccess) {
             throw new RuntimeException("DatabaseAccess with id {$id} not found");
         }
-        
+
         return self::createPdoFromDatabaseConnectionEntity($databaseAccess);
     }
 
@@ -126,17 +126,17 @@ class Domain
             $sql = "SHOW DATABASES";
             $stmt = $pdo->query($sql);
             $databases = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            
+
             if ($ignoreSystemDatabases) {
                 $ignoreDatabases = ['information_schema', 'mysql', 'performance_schema', 'sys'];
-                
-                $filteredDatabases = array_filter($databases, function($database) use ($ignoreDatabases) {
+
+                $filteredDatabases = array_filter($databases, function ($database) use ($ignoreDatabases) {
                     return !in_array(strtolower($database), array_map('strtolower', $ignoreDatabases));
                 });
 
                 $databases = $filteredDatabases;
             }
-            
+
             return array_values(array_map('strval', $databases));
         } catch (PDOException $e) {
             throw new Exception("Failed to list databases: " . $e->getMessage());
@@ -151,45 +151,44 @@ class Domain
             if (empty($tableName)) {
                 throw new Exception("Table name cannot be empty");
             }
-            
+
             $columnsSql = "SHOW COLUMNS FROM `$tableName`";
             $columnsStmt = $sourcePdo->query($columnsSql);
             $columns = $columnsStmt->fetchAll(PDO::FETCH_COLUMN);
-            
+
             if (empty($columns)) {
                 throw new Exception("No columns found in table {$tableName}");
             }
-            
+
             $selectSql = "SELECT * FROM `$tableName` WHERE id = :id LIMIT 1";
             $selectStmt = $sourcePdo->prepare($selectSql);
             $selectStmt->bindParam(':id', $id, PDO::PARAM_INT);
             $selectStmt->execute();
-            
+
             $record = $selectStmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if (!$record) {
                 throw new Exception("Record with ID {$id} not found in table {$tableName}");
             }
-            
+
             $columnNames = array_diff($columns, ['id']); // Remove 'id' to let auto-increment work
             $placeholders = implode(', ', array_fill(0, count($columnNames), '?'));
-            
+
             $insertSql = "INSERT INTO `$tableName` (" . implode(', ', $columnNames) . ") VALUES ($placeholders)";
             $insertStmt = $targetPdo->prepare($insertSql);
-            
+
             $insertValues = [];
             foreach ($columnNames as $columnName) {
                 $insertValues[] = $record[$columnName];
             }
-            
+
             $result = $insertStmt->execute($insertValues);
-            
+
             if ($result) {
                 return true;
             } else {
                 throw new Exception("Failed to insert record into target database");
             }
-            
         } catch (PDOException $e) {
             throw new Exception("Database error: " . $e->getMessage());
         } catch (Exception $e) {
@@ -204,11 +203,11 @@ class Domain
     {
         try {
             $pdo->exec("USE `$databaseName`");
-            
+
             $sql = "SHOW TABLES";
             $stmt = $pdo->query($sql);
             $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            
+
             return array_map('strval', $tables);
         } catch (PDOException $e) {
             throw new Exception("Failed to list tables: " . $e->getMessage());
@@ -230,7 +229,7 @@ class Domain
             $sql = "SHOW CREATE TABLE `$tableName`";
             $stmt = $pdo->query($sql);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if ($result && isset($result['Create Table'])) {
                 return $result['Create Table'] . ";\n";
             } else {
@@ -302,27 +301,23 @@ class Domain
         string $tableName,
         EntityManagerInterface $entityManager
     ): void {
-        try {
-            $sourcePdo = self::getPdoFromDatabaseAccessId($sourceConnectionId, $entityManager);
-            $targetPdo = self::getPdoFromDatabaseAccessId($targetConnectionId, $entityManager);
-            
-            $targetDatabaseExists = Helpers::databaseExists($targetPdo, $databaseName);
-            if (!$targetDatabaseExists) {
-                throw new MissingTargetDatabase($databaseName);
-            }
+        $sourcePdo = self::getPdoFromDatabaseAccessId($sourceConnectionId, $entityManager);
+        $targetPdo = self::getPdoFromDatabaseAccessId($targetConnectionId, $entityManager);
 
-            $targetTableExists = Helpers::tableExists($targetPdo, $databaseName, $tableName);
-            if ($targetTableExists) {
-                throw new TargetTableAlreadyExists($tableName);
-            }
-            
-            $createTableStatement = self::getCreateTableStatement($sourcePdo, $tableName);
-
-            $fullCreateTableStatement = "USE `{$databaseName}`;\n" . $createTableStatement;
-            
-            $targetPdo->exec($fullCreateTableStatement);
-        } catch (Exception $e) {
-            throw new Exception("Error creating table from source: " . $e->getMessage());
+        $targetDatabaseExists = Helpers::databaseExists($targetPdo, $databaseName);
+        if (!$targetDatabaseExists) {
+            throw new MissingTargetDatabase($databaseName);
         }
+
+        $targetTableExists = Helpers::tableExists($targetPdo, $databaseName, $tableName);
+        if ($targetTableExists) {
+            throw new TargetTableAlreadyExists($tableName);
+        }
+
+        $createTableStatement = self::getCreateTableStatement($sourcePdo, $tableName);
+
+        $fullCreateTableStatement = "USE `{$databaseName}`;\n" . $createTableStatement;
+
+        $targetPdo->exec($fullCreateTableStatement);
     }
 }
