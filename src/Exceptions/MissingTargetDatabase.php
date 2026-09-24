@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Danilocgsilva\EntityClone\Exception;
+namespace Danilocgsilva\EntityClone\Exceptions;
 
 use Exception;
 
