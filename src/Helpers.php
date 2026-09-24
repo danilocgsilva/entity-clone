@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Danilocgsilva\EntityClone;
 
 use PDO;
+use PDOException;
 
 class Helpers
 {
@@ -25,22 +26,5 @@ class Helpers
         } catch (PDOException $e) {
             return false;
         }
-    }
-
-    /**
-     * Cleans the CREATE TABLE statement by removing the table name part
-     *
-     * @param string $createTableStatement
-     * @param string $tableName
-     * @return string
-     */
-    public static function cleanCreateTableStatement(string $createTableStatement, string $tableName): string
-    {
-        $pattern = "/^CREATE TABLE `{$tableName}` /i";
-        $cleanedStatement = preg_replace($pattern, 'CREATE TABLE ', $createTableStatement);
-        
-        $cleanedStatement = rtrim(trim($cleanedStatement), ';');
-        
-        return $cleanedStatement;
     }
 }

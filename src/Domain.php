@@ -308,10 +308,10 @@ class Domain
             }
             
             $createTableStatement = self::getCreateTableStatement($sourcePdo, $tableName);
+
+            $fullCreateTableStatement = "USE `{$databaseName}`;\n" . $createTableStatement;
             
-            $createTableStatement = Helpers::cleanCreateTableStatement($createTableStatement, $tableName);
-            
-            $targetPdo->exec($createTableStatement);
+            $targetPdo->exec($fullCreateTableStatement);
         } catch (Exception $e) {
             throw new Exception("Error creating table from source: " . $e->getMessage());
         }
