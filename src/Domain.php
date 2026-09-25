@@ -284,6 +284,40 @@ class Domain
     }
 
     /**
+     * Lists the size of all databases in the MySQL server connection
+     *
+     * @param PDO $pdo
+     * @return Generator<array{database: string, size: float}>
+     * @throws Exception
+     */
+    public static function listDatabaseSizes(PDO $pdo): Generator
+    {
+        try {
+            $sql = "
+                SELECT 
+                    table_schema AS 'DB Name', 
+                    ROUND(SUM(data_length + index_length), 1) AS 'Size'
+                FROM information_schema.tables 
+                GROUP BY table_schema
+            ";
+            
+            $stmt = $pdo->query($sql);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($results as $result) {
+                yield [
+                    'database' => $result['DB Name'],
+                    'size' => (float) $result['Size']
+                ];
+            }
+        } catch (PDOException $e) {
+            throw new Exception("Failed to list database sizes: " . $e->getMessage());
+        } catch (Exception $e) {
+            throw new Exception("Error listing database sizes: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Creates a table in the target database with the same structure as the source table
      *
      * @param int $sourceConnectionId
