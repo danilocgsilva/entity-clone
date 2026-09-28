@@ -392,4 +392,42 @@ class Domain
             throw new Exception("Error listing table sizes for database {$databaseName}: " . $e->getMessage());
         }
     }
+
+    /**
+     * Lists the number of entries (rows) in all tables of a given database
+     *
+     * @param PDO $pdo
+     * @param string $databaseName
+     * @return Generator<array{table: string, count: int}>
+     * @throws Exception
+     */
+    public static function listTableEntryCounts(PDO $pdo, string $databaseName): Generator
+    {
+        try {
+            $sql = "
+                SELECT 
+                    table_name AS 'Table', 
+                    table_rows AS 'Count'
+                FROM information_schema.tables 
+                WHERE table_schema = :database_name
+                AND table_type = 'BASE TABLE'
+                ORDER BY table_rows DESC
+            ";
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([':database_name' => $databaseName]);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($results as $result) {
+                yield [
+                    'table' => $result['Table'],
+                    'count' => (int) $result['Count']
+                ];
+            }
+        } catch (PDOException $e) {
+            throw new Exception("Failed to list table entry counts for database {$databaseName}: " . $e->getMessage());
+        } catch (Exception $e) {
+            throw new Exception("Error listing table entry counts for database {$databaseName}: " . $e->getMessage());
+        }
+    }
 }
