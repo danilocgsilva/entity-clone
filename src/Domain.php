@@ -354,4 +354,42 @@ class Domain
 
         $targetPdo->exec($fullCreateTableStatement);
     }
+
+    /**
+     * Lists the size of all tables in a given database
+     *
+     * @param PDO $pdo
+     * @param string $databaseName
+     * @return Generator<array{table: string, size: float}>
+     * @throws Exception
+     */
+    public static function listTableSizes(PDO $pdo, string $databaseName): Generator
+    {
+        try {
+            $sql = "
+                SELECT 
+                    table_name AS 'Table', 
+                    ROUND(SUM(data_length + index_length), 1) AS 'Size'
+                FROM information_schema.tables 
+                WHERE table_schema = :database_name
+                GROUP BY table_name
+                ORDER BY (data_length + index_length) DESC
+            ";
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([':database_name' => $databaseName]);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($results as $result) {
+                yield [
+                    'table' => $result['Table'],
+                    'size' => (float) $result['Size']
+                ];
+            }
+        } catch (PDOException $e) {
+            throw new Exception("Failed to list table sizes for database {$databaseName}: " . $e->getMessage());
+        } catch (Exception $e) {
+            throw new Exception("Error listing table sizes for database {$databaseName}: " . $e->getMessage());
+        }
+    }
 }
