@@ -411,7 +411,6 @@ class Domain
                 FROM information_schema.tables 
                 WHERE table_schema = :database_name
                 AND table_type = 'BASE TABLE'
-                ORDER BY table_rows DESC
             ";
             
             $stmt = $pdo->prepare($sql);
