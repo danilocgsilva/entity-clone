@@ -97,16 +97,17 @@ class Domain
         }
     }
 
-    /**
-     * @return PDO
-     */
+
     public static function getPdoFromDatabaseAccessId(int $id, EntityManagerInterface $entityManager): PDO
     {
-        $repository = $entityManager->getRepository(DatabaseAccess::class);
-        $databaseAccess = $repository->find($id);
-
+        $databaseAccess = $entityManager->find(DatabaseAccess::class, $id);
+        
         if (!$databaseAccess) {
             throw new RuntimeException("DatabaseAccess with id {$id} not found");
+        }
+
+        if (!$databaseAccess->getHost() || !$databaseAccess->getDatabaseName()) {
+            throw new RuntimeException("Incomplete database access configuration for id {$id}");
         }
 
         return self::createPdoFromDatabaseConnectionEntity($databaseAccess);
@@ -290,30 +291,23 @@ class Domain
      * @return Generator<array{database: string, size: float}>
      * @throws Exception
      */
-    public static function listDatabaseSizes(PDO $pdo): Generator
+    public static function listDatabaseSizes(PDO $pdo, bool $ignoreSystemDatabases = false): Generator
     {
         try {
-            $sql = "
-                SELECT 
-                    table_schema AS 'DB Name', 
-                    ROUND(SUM(data_length + index_length), 1) AS 'Size'
-                FROM information_schema.tables 
-                GROUP BY table_schema
-            ";
-            
+            $sql = "SHOW DATABASES";
             $stmt = $pdo->query($sql);
-            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            foreach ($results as $result) {
-                yield [
-                    'database' => $result['DB Name'],
-                    'size' => (float) $result['Size']
-                ];
+            $databases = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            if ($ignoreSystemDatabases) {
+                $ignoreDatabases = ['information_schema', 'mysql', 'performance_schema', 'sys'];
+                $databases = array_filter($databases, function ($database) use ($ignoreDatabases) {
+                    return !in_array(strtolower($database), array_map('strtolower', $ignoreDatabases));
+                });
             }
+
+            return array_values(array_map('strval', $databases));
         } catch (PDOException $e) {
-            throw new Exception("Failed to list database sizes: " . $e->getMessage());
-        } catch (Exception $e) {
-            throw new Exception("Error listing database sizes: " . $e->getMessage());
+            throw new Exception("Failed to list databases: " . $e->getMessage());
         }
     }
 
@@ -375,11 +369,11 @@ class Domain
                 GROUP BY table_name, (data_length + index_length)
                 ORDER BY (data_length + index_length) DESC
             ";
-            
+
             $stmt = $pdo->prepare($sql);
             $stmt->execute([':database_name' => $databaseName]);
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
             foreach ($results as $result) {
                 yield [
                     'table' => $result['Table'],
@@ -412,11 +406,11 @@ class Domain
                 WHERE table_schema = :database_name
                 AND table_type = 'BASE TABLE'
             ";
-            
+
             $stmt = $pdo->prepare($sql);
             $stmt->execute([':database_name' => $databaseName]);
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
             foreach ($results as $result) {
                 yield [
                     'table' => $result['Table'],
