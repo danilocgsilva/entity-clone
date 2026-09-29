@@ -104,9 +104,9 @@ class Domain
         if (!$databaseAccess) {
             throw new RuntimeException("DatabaseAccess with id {$id} not found");
         }
-        
+
         if (!$databaseAccess->getHost()) {
-            throw new RuntimeException("Incomplete database access configuration for id {$id}");
+            throw new RuntimeException("Incomplete database access configuration for id {$id}: database host is missing at the register.");
         }
 
         return self::createPdoFromDatabaseConnectionEntity($databaseAccess);
@@ -287,6 +287,7 @@ class Domain
      * Lists the size of all databases in the MySQL server connection
      *
      * @param PDO $pdo
+     * @param bool $ignoreSystemDatabases Whether to ignore system databases (information_schema, mysql, performance_schema, sys)
      * @return Generator<array{database: string, size: float}>
      * @throws Exception
      */
@@ -304,9 +305,23 @@ class Domain
                 });
             }
 
-            return array_values(array_map('strval', $databases));
+            foreach ($databases as $database) {
+                $database = strval($database);
+
+                $sizeSql = "SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size 
+                            FROM information_schema.tables 
+                            WHERE table_schema = ?";
+                $sizeStmt = $pdo->prepare($sizeSql);
+                $sizeStmt->execute([$database]);
+                $size = (float) $sizeStmt->fetchColumn();
+
+                yield [
+                    'database' => $database,
+                    'size' => $size
+                ];
+            }
         } catch (PDOException $e) {
-            throw new Exception("Failed to list databases: " . $e->getMessage());
+            throw new Exception("Failed to list database sizes: " . $e->getMessage());
         }
     }
 
