@@ -101,12 +101,11 @@ class Domain
     public static function getPdoFromDatabaseAccessId(int $id, EntityManagerInterface $entityManager): PDO
     {
         $databaseAccess = $entityManager->find(DatabaseAccess::class, $id);
-        
         if (!$databaseAccess) {
             throw new RuntimeException("DatabaseAccess with id {$id} not found");
         }
-
-        if (!$databaseAccess->getHost() || !$databaseAccess->getDatabaseName()) {
+        
+        if (!$databaseAccess->getHost()) {
             throw new RuntimeException("Incomplete database access configuration for id {$id}");
         }
 
