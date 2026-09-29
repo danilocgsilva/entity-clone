@@ -372,7 +372,7 @@ class Domain
                     ROUND(SUM(data_length + index_length), 1) AS 'Size'
                 FROM information_schema.tables 
                 WHERE table_schema = :database_name
-                GROUP BY table_name
+                GROUP BY table_name, (data_length + index_length)
                 ORDER BY (data_length + index_length) DESC
             ";
             
