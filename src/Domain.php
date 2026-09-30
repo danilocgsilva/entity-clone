@@ -381,7 +381,6 @@ class Domain
                 FROM information_schema.tables 
                 WHERE table_schema = :database_name
                 GROUP BY table_name, (data_length + index_length)
-                ORDER BY (data_length + index_length) DESC
             ";
 
             $stmt = $pdo->prepare($sql);
